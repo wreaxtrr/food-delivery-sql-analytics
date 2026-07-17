@@ -2,9 +2,9 @@
 
 ## Описание
 
-Логическая модель описывает таблицы базы данных, их основные поля, первичные ключи, внешние ключи и связи между таблицами.
+Логическая модель описывает основные сущности базы данных сервиса доставки еды, их атрибуты, первичные и внешние ключи, а также связи между таблицами.
 
-База данных проектируется для сервиса доставки еды и должна поддерживать хранение информации о пользователях, ресторанах, товарах, заказах, платежах, промокодах, курьерах и событиях пользователей в приложении.
+База данных предназначена для хранения информации о пользователях, ресторанах, товарах, заказах, платежах, промокодах, курьерах и действиях пользователей в приложении.
 
 ## Таблицы
 
@@ -12,58 +12,59 @@
 
 Таблица пользователей сервиса.
 
-| Поле | Описание |
-|---|---|
-| user_id | Уникальный идентификатор пользователя |
-| full_name | Имя пользователя |
-| email | Email пользователя |
-| phone | Телефон пользователя |
-| registration_date | Дата регистрации |
-| city | Город пользователя |
+| Поле                | Описание                                              |
+| ------------------- | ----------------------------------------------------- |
+| `user_id`           | Уникальный идентификатор пользователя, первичный ключ |
+| `full_name`         | Имя пользователя                                      |
+| `email`             | Электронная почта пользователя                        |
+| `phone`             | Номер телефона пользователя                           |
+| `registration_date` | Дата регистрации пользователя                         |
+| `city`              | Город пользователя                                    |
 
 Связи:
 
-- `users.user\\\\\\\_id` → `orders.user\\\\\\\_id`
-- `users.user\\\\\\\_id` → `app\\\\\\\_events.user\\\\\\\_id`
+* `orders.user_id` → `users.user_id`
+* `app_events.user_id` → `users.user_id`
 
 ---
 
 ### restaurants
 
-Таблица ресторанов.
+Таблица ресторанов, подключённых к сервису.
 
-| Поле | Описание |
-|---|---|
-| restaurant_id | Уникальный идентификатор ресторана |
-| restaurant_name | Название ресторана |
-| city | Город ресторана |
-| cuisine_type | Тип кухни |
-| opened_at | Дата открытия ресторана |
-| is_active | Активен ли ресторан |
+| Поле              | Описание                                           |
+| ----------------- | -------------------------------------------------- |
+| `restaurant_id`   | Уникальный идентификатор ресторана, первичный ключ |
+| `restaurant_name` | Название ресторана                                 |
+| `city`            | Город ресторана                                    |
+| `cuisine_type`    | Тип кухни                                          |
+| `opened_at`       | Дата открытия ресторана                            |
+| `is_active`       | Признак активности ресторана                       |
 
 Связи:
 
-- `restaurants.restaurant\\\\\\\_id` → `products.restaurant\\\\\\\_id`
-- `restaurants.restaurant\\\\\\\_id` → `orders.restaurant\\\\\\\_id`
+* `products.restaurant_id` → `restaurants.restaurant_id`
+* `orders.restaurant_id` → `restaurants.restaurant_id`
+* `app_events.restaurant_id` → `restaurants.restaurant_id`
 
 ---
 
 ### couriers
 
-Таблица курьеров.
+Таблица курьеров сервиса.
 
-| Поле | Описание |
-|---|---|
-| courier_id | Уникальный идентификатор курьера |
-| full_name | Имя курьера |
-| phone | Телефон курьера |
-| hire_date | Дата найма |
-| transport_type | Тип транспорта |
-| is_active | Активен ли курьер |
+| Поле             | Описание                                         |
+| ---------------- | ------------------------------------------------ |
+| `courier_id`     | Уникальный идентификатор курьера, первичный ключ |
+| `full_name`      | Имя курьера                                      |
+| `phone`          | Номер телефона курьера                           |
+| `hire_date`      | Дата приёма на работу                            |
+| `transport_type` | Тип транспорта                                   |
+| `is_active`      | Признак активности курьера                       |
 
 Связи:
 
-- `couriers.courier\\\\\\\_id` → `orders.courier\\\\\\\_id`
+* `orders.courier_id` → `couriers.courier_id`
 
 ---
 
@@ -71,37 +72,40 @@
 
 Таблица категорий товаров.
 
-| Поле | Описание |
-|---|---|
-| category_id | Уникальный идентификатор категории |
-| category_name | Название категории |
-| parent_category_id | Родительская категория |
+| Поле                 | Описание                                           |
+| -------------------- | -------------------------------------------------- |
+| `category_id`        | Уникальный идентификатор категории, первичный ключ |
+| `category_name`      | Название категории                                 |
+| `parent_category_id` | Идентификатор родительской категории               |
 
 Связи:
 
-- `categories.category\\\\\\\_id` → `products.category\\\\\\\_id`
-- `categories.category\\\\\\\_id` → `categories.parent\\\\\\\_category\\\\\\\_id`
+* `products.category_id` → `categories.category_id`
+* `categories.parent_category_id` → `categories.category_id`
+
+Связь `categories.parent_category_id` позволяет создавать иерархию категорий и подкатегорий.
 
 ---
 
 ### products
 
-Таблица товаров / блюд.
+Таблица товаров и блюд ресторанов.
 
-| Поле | Описание |
-|---|---|
-| product_id | Уникальный идентификатор товара |
-| restaurant_id | Ресторан, которому принадлежит товар |
-| category_id | Категория товара |
-| product_name | Название товара |
-| price | Цена товара |
-| is_available | Доступен ли товар |
+| Поле            | Описание                                        |
+| --------------- | ----------------------------------------------- |
+| `product_id`    | Уникальный идентификатор товара, первичный ключ |
+| `restaurant_id` | Идентификатор ресторана                         |
+| `category_id`   | Идентификатор категории товара                  |
+| `product_name`  | Название товара                                 |
+| `price`         | Текущая цена товара                             |
+| `is_available`  | Признак доступности товара для заказа           |
 
 Связи:
 
-- `products.restaurant\\\\\\\_id` → `restaurants.restaurant\\\\\\\_id`
-- `products.category\\\\\\\_id` → `categories.category\\\\\\\_id`
-- `products.product\\\\\\\_id` → `order\\\\\\\_items.product\\\\\\\_id`
+* `products.restaurant_id` → `restaurants.restaurant_id`
+* `products.category_id` → `categories.category_id`
+* `order_items.product_id` → `products.product_id`
+* `app_events.product_id` → `products.product_id`
 
 ---
 
@@ -109,49 +113,52 @@
 
 Таблица промокодов.
 
-| Поле | Описание |
-|---|---|
-| promocode_id | Уникальный идентификатор промокода |
-| code | Код промокода |
-| discount_type | Тип скидки |
-| discount_value | Размер скидки |
-| starts_at | Дата начала действия |
-| ends_at | Дата окончания действия |
-| is_active | Активен ли промокод |
+| Поле             | Описание                                           |
+| ---------------- | -------------------------------------------------- |
+| `promocode_id`   | Уникальный идентификатор промокода, первичный ключ |
+| `code`           | Текстовый код промокода                            |
+| `discount_type`  | Тип скидки                                         |
+| `discount_value` | Размер скидки                                      |
+| `starts_at`      | Дата начала действия промокода                     |
+| `ends_at`        | Дата окончания действия промокода                  |
+| `is_active`      | Признак активности промокода                       |
 
 Связи:
 
-- `promocodes.promocode\\\\\\\_id` → `orders.promocode\\\\\\\_id`
+* `orders.promocode_id` → `promocodes.promocode_id`
+
+Один промокод может быть применён в нескольких заказах. Заказ также может быть создан без промокода.
 
 ---
 
 ### orders
 
-Таблица заказов.
+Таблица заказов пользователей.
 
-| Поле | Описание |
-|---|---|
-| order_id | Уникальный идентификатор заказа |
-| user_id | Пользователь, сделавший заказ |
-| restaurant_id | Ресторан, в котором сделан заказ |
-| courier_id | Курьер заказа |
-| promocode_id | Применённый промокод |
-| order_created_at | Время создания заказа |
-| order_status | Текущий статус заказа |
-| delivery_address | Адрес доставки |
-| delivery_fee | Стоимость доставки |
-| discount_amount | Размер скидки |
-| total_amount | Итоговая сумма заказа |
+| Поле               | Описание                                        |
+| ------------------ | ----------------------------------------------- |
+| `order_id`         | Уникальный идентификатор заказа, первичный ключ |
+| `user_id`          | Идентификатор пользователя                      |
+| `restaurant_id`    | Идентификатор ресторана                         |
+| `courier_id`       | Идентификатор курьера                           |
+| `promocode_id`     | Идентификатор применённого промокода            |
+| `order_created_at` | Дата и время создания заказа                    |
+| `order_status`     | Текущий статус заказа                           |
+| `delivery_address` | Адрес доставки                                  |
+| `delivery_fee`     | Стоимость доставки                              |
+| `discount_amount`  | Размер применённой скидки                       |
+| `total_amount`     | Итоговая стоимость заказа                       |
 
 Связи:
 
-- `orders.user\\\\\\\_id` → `users.user\\\\\\\_id`
-- `orders.restaurant\\\\\\\_id` → `restaurants.restaurant\\\\\\\_id`
-- `orders.courier\\\\\\\_id` → `couriers.courier\\\\\\\_id`
-- `orders.promocode\\\\\\\_id` → `promocodes.promocode\\\\\\\_id`
-- `orders.order\\\\\\\_id` → `order\\\\\\\_items.order\\\\\\\_id`
-- `orders.order\\\\\\\_id` → `payments.order\\\\\\\_id`
-- `orders.order\\\\\\\_id` → `order\\\\\\\_status\\\\\\\_history.order\\\\\\\_id`
+* `orders.user_id` → `users.user_id`
+* `orders.restaurant_id` → `restaurants.restaurant_id`
+* `orders.courier_id` → `couriers.courier_id`
+* `orders.promocode_id` → `promocodes.promocode_id`
+* `order_items.order_id` → `orders.order_id`
+* `payments.order_id` → `orders.order_id`
+* `order_status_history.order_id` → `orders.order_id`
+* `app_events.order_id` → `orders.order_id`
 
 ---
 
@@ -159,54 +166,60 @@
 
 Таблица позиций заказа.
 
-| Поле | Описание |
-|---|---|
-| order_item_id | Уникальный идентификатор позиции заказа |
-| order_id | Заказ |
-| product_id | Товар |
-| quantity | Количество |
-| unit_price | Цена товара на момент заказа |
+| Поле            | Описание                                                |
+| --------------- | ------------------------------------------------------- |
+| `order_item_id` | Уникальный идентификатор позиции заказа, первичный ключ |
+| `order_id`      | Идентификатор заказа                                    |
+| `product_id`    | Идентификатор товара                                    |
+| `quantity`      | Количество единиц товара                                |
+| `unit_price`    | Цена одной единицы товара на момент оформления заказа   |
 
 Связи:
 
-- `order\\\\\\\_items.order\\\\\\\_id` → `orders.order\\\\\\\_id`
-- `order\\\\\\\_items.product\\\\\\\_id` → `products.product\\\\\\\_id`
+* `order_items.order_id` → `orders.order_id`
+* `order_items.product_id` → `products.product_id`
+
+Хранение цены в поле `unit_price` позволяет сохранить фактическую стоимость товара на момент оформления заказа, даже если его текущая цена позднее изменится.
 
 ---
 
 ### payments
 
-Таблица платежей.
+Таблица платежей по заказам.
 
-| Поле | Описание |
-|---|---|
-| payment_id | Уникальный идентификатор платежа |
-| order_id | Заказ |
-| payment_method | Способ оплаты |
-| payment_status | Статус платежа |
-| paid_at | Время оплаты |
-| amount | Сумма платежа |
+| Поле             | Описание                                         |
+| ---------------- | ------------------------------------------------ |
+| `payment_id`     | Уникальный идентификатор платежа, первичный ключ |
+| `order_id`       | Идентификатор заказа                             |
+| `payment_method` | Способ оплаты                                    |
+| `payment_status` | Статус платежа                                   |
+| `paid_at`        | Дата и время оплаты                              |
+| `amount`         | Сумма платежа                                    |
 
 Связи:
 
-- `payments.order\\\\\\\_id` → `orders.order\\\\\\\_id`
+* `payments.order_id` → `orders.order_id`
+
+Для одного заказа хранится не более одного платежа.
 
 ---
 
 ### order_status_history
 
-История изменения статусов заказов.
+Таблица истории изменения статусов заказов.
 
-| Поле | Описание |
-|---|---|
-| status_history_id | Уникальный идентификатор записи |
-| order_id | Заказ |
-| status | Статус заказа |
-| status_changed_at | Время изменения статуса |
+| Поле                | Описание                                        |
+| ------------------- | ----------------------------------------------- |
+| `status_history_id` | Уникальный идентификатор записи, первичный ключ |
+| `order_id`          | Идентификатор заказа                            |
+| `status`            | Статус заказа                                   |
+| `status_changed_at` | Дата и время изменения статуса                  |
 
 Связи:
 
-- `order\\\\\\\_status\\\\\\\_history.order\\\\\\\_id` → `orders.order\\\\\\\_id`
+* `order_status_history.order_id` → `orders.order_id`
+
+Таблица позволяет анализировать этапы выполнения заказа и рассчитывать время между изменениями его статусов.
 
 ---
 
@@ -214,34 +227,45 @@
 
 Таблица событий пользователей в приложении.
 
-| Поле | Описание |
-|---|---|
-| event_id | Уникальный идентификатор события |
-| user_id | Пользователь |
-| event_time | Время события |
-| event_type | Тип события |
-| restaurant_id | Ресторан, связанный с событием |
-| product_id | Товар, связанный с событием |
-| order_id | Заказ, связанный с событием |
+| Поле            | Описание                                         |
+| --------------- | ------------------------------------------------ |
+| `event_id`      | Уникальный идентификатор события, первичный ключ |
+| `user_id`       | Идентификатор пользователя                       |
+| `event_time`    | Дата и время события                             |
+| `event_type`    | Тип события                                      |
+| `restaurant_id` | Идентификатор ресторана, связанного с событием   |
+| `product_id`    | Идентификатор товара, связанного с событием      |
+| `order_id`      | Идентификатор заказа, связанного с событием      |
 
 Связи:
 
-- `app\\\\\\\_events.user\\\\\\\_id` → `users.user\\\\\\\_id`
-- `app\\\\\\\_events.restaurant\\\\\\\_id` → `restaurants.restaurant\\\\\\\_id`
-- `app\\\\\\\_events.product\\\\\\\_id` → `products.product\\\\\\\_id`
-- `app\\\\\\\_events.order\\\\\\\_id` → `orders.order\\\\\\\_id`
+* `app_events.user_id` → `users.user_id`
+* `app_events.restaurant_id` → `restaurants.restaurant_id`
+* `app_events.product_id` → `products.product_id`
+* `app_events.order_id` → `orders.order_id`
+
+В зависимости от типа события поля `restaurant_id`, `product_id` и `order_id` могут быть пустыми.
 
 ## Основные связи
 
-- `users` 1 → N `orders`
-- `users` 1 → N `app\\\\\\\_events`
-- `restaurants` 1 → N `products`
-- `restaurants` 1 → N `orders`
-- `categories` 1 → N `products`
-- `categories` 1 → N `categories`
-- `orders` 1 → N `order\\\\\\\_items`
-- `products` 1 → N `order\\\\\\\_items`
-- `orders` 1 → 1 `payments`
-- `orders` 1 → N `order\\\\\\\_status\\\\\\\_history`
-- `couriers` 1 → N `orders`
-- `promocodes` 1 → N `orders`
+* `users` 1 → N `orders`
+* `users` 1 → N `app_events`
+* `restaurants` 1 → N `products`
+* `restaurants` 1 → N `orders`
+* `restaurants` 1 → N `app_events`
+* `categories` 1 → N `products`
+* `categories` 1 → N `categories`
+* `couriers` 1 → N `orders`
+* `promocodes` 1 → N `orders`
+* `orders` 1 → N `order_items`
+* `products` 1 → N `order_items`
+* `orders` 1 → 1 `payments`
+* `orders` 1 → N `order_status_history`
+* `orders` 1 → N `app_events`
+* `products` 1 → N `app_events`
+
+## Обозначения
+
+* **1 → N** — одной записи первой таблицы может соответствовать несколько записей второй таблицы.
+* **1 → 1** — одной записи первой таблицы соответствует не более одной записи второй таблицы.
+* Стрелки вида `orders.user_id` → `users.user_id` показывают направление от внешнего ключа к первичному ключу.
