@@ -399,3 +399,24 @@ select
     ) as total_conversion
 
 from funnel;
+
+-- 12. время доставки по типу транспорта
+
+select
+    c.transport_type,
+    count(*) as delivered_orders,
+    round(avg(v.delivery_minutes), 2) as avg_delivery_minutes,
+    round(
+        percentile_cont(0.5) within group (
+            order by v.delivery_minutes
+        )::numeric,
+        2
+    ) as median_delivery_minutes,
+    min(v.delivery_minutes) as min_delivery_minutes,
+    max(v.delivery_minutes) as max_delivery_minutes
+from v_order_summary v
+join couriers c
+    on c.courier_id = v.courier_id
+where v.order_status = 'delivered'
+group by c.transport_type
+order by avg_delivery_minutes;
