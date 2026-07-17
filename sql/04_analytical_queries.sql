@@ -130,19 +130,37 @@ select
         when promocode_id is null then 'without promo'
         else 'with promo'
     end as promo_group,
-    count(*) as orders_count,
-    round(avg(total_amount), 2) as avg_order_value,
-    round(sum(total_amount), 2) as gmv,
+
+    count(*) as all_orders,
+
+    count(*) filter (
+        where order_status = 'delivered'
+    ) as delivered_orders,
+
+    round(
+        avg(total_amount) filter (
+            where order_status = 'delivered'
+        ),
+        2
+    ) as avg_delivered_order_value,
+
+    round(
+        sum(total_amount) filter (
+            where order_status = 'delivered'
+        ),
+        2
+    ) as net_revenue,
+
     round(
         100.0 * count(*) filter (
             where order_status = 'cancelled'
         ) / nullif(count(*), 0),
         2
     ) as cancellation_rate
+
 from v_order_summary
 group by 1
 order by 1;
-
 
 -- 7. доля пользователей с повторными заказами
 
@@ -306,3 +324,78 @@ select
     category_path
 from category_tree
 order by category_path;
+
+
+
+
+
+-- 11. продуктовая воронка
+
+with funnel as (
+    select
+        count(*) filter (
+            where event_type = 'app_open'
+        ) as app_open,
+
+        count(*) filter (
+            where event_type = 'restaurant_view'
+        ) as restaurant_view,
+
+        count(*) filter (
+            where event_type = 'product_view'
+        ) as product_view,
+
+        count(*) filter (
+            where event_type = 'add_to_cart'
+        ) as add_to_cart,
+
+        count(*) filter (
+            where event_type = 'checkout_start'
+        ) as checkout_start,
+
+        count(*) filter (
+            where event_type = 'order_created'
+        ) as order_created
+
+    from app_events
+)
+
+select
+    app_open,
+    restaurant_view,
+    product_view,
+    add_to_cart,
+    checkout_start,
+    order_created,
+
+    round(
+        100.0 * restaurant_view / nullif(app_open, 0),
+        2
+    ) as app_to_restaurant_conversion,
+
+    round(
+        100.0 * product_view / nullif(restaurant_view, 0),
+        2
+    ) as restaurant_to_product_conversion,
+
+    round(
+        100.0 * add_to_cart / nullif(product_view, 0),
+        2
+    ) as product_to_cart_conversion,
+
+    round(
+        100.0 * checkout_start / nullif(add_to_cart, 0),
+        2
+    ) as cart_to_checkout_conversion,
+
+    round(
+        100.0 * order_created / nullif(checkout_start, 0),
+        2
+    ) as checkout_to_order_conversion,
+
+    round(
+        100.0 * order_created / nullif(app_open, 0),
+        2
+    ) as total_conversion
+
+from funnel;
