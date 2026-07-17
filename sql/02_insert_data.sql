@@ -143,37 +143,100 @@ values
 
 -- заказы
 
-with generated_orders as (
+-- первые покупки 350 пользователей распределены
+-- с января по сентябрь
+
+drop table if exists buyer_first_orders;
+
+create temp table buyer_first_orders as
+select
+    user_id,
+    timestamp '2024-01-01'
+        + random() * interval '273 days' as first_order_at
+from users
+where user_id <= 350;
+
+
+-- первые 180 покупателей совершают повторные заказы
+
+with repeat_random as (
     select
         n,
-        floor(random() * 500)::bigint + 1 as user_id,
-        timestamp '2024-01-02'
-            + random() * interval '364 days' as order_created_at,
+        floor(random() * 180)::bigint + 1 as user_id,
+        random() as date_random,
         random() as promo_probability,
         random() as cancellation_probability
-    from generate_series(1, 3000) as gs(n)
+    from generate_series(1, 2650) as gs(n)
 ),
 
-prepared_orders as (
+generated_orders as (
+    -- первый заказ каждого покупателя
+
+    select
+        b.user_id::int as n,
+        b.user_id,
+        b.first_order_at as order_created_at,
+        random() as promo_probability,
+        random() as cancellation_probability
+    from buyer_first_orders b
+
+    union all
+
+    -- повторные заказы создаются только после первой покупки
+
+    select
+        350 + r.n as n,
+        r.user_id,
+
+        b.first_order_at
+            + interval '1 day'
+            + r.date_random * (
+                timestamp '2024-12-31 23:59:59'
+                - b.first_order_at
+                - interval '1 day'
+            ) as order_created_at,
+
+        r.promo_probability,
+        r.cancellation_probability
+    from repeat_random r
+    join buyer_first_orders b
+        on b.user_id = r.user_id
+),
+
+restaurant_candidates as (
     select
         g.n,
         g.user_id,
         u.city as user_city,
         r.restaurant_id,
-        floor(random() * 40)::bigint + 1 as courier_id,
         g.order_created_at,
         g.promo_probability,
-        g.cancellation_probability
+        g.cancellation_probability,
+
+        row_number() over (
+            partition by g.n
+            order by random()
+        ) as restaurant_number
+
     from generated_orders g
     join users u
         on u.user_id = g.user_id
-    cross join lateral (
-        select restaurant_id
-        from restaurants r
-        where r.city = u.city
-        order by random()
-        limit 1
-    ) r
+    join restaurants r
+        on r.city = u.city
+),
+
+prepared_orders as (
+    select
+        n,
+        user_id,
+        user_city,
+        restaurant_id,
+        floor(random() * 40)::bigint + 1 as courier_id,
+        order_created_at,
+        promo_probability,
+        cancellation_probability
+    from restaurant_candidates
+    where restaurant_number = 1
 ),
 
 orders_with_promo as (
@@ -182,7 +245,8 @@ orders_with_promo as (
         p.promocode_id
     from prepared_orders o
     left join lateral (
-        select promocode_id
+        select
+            promocode_id
         from promocodes p
         where o.promo_probability < 0.35
           and p.is_active = true
@@ -222,7 +286,6 @@ select
     0,
     0
 from orders_with_promo;
-
 
 -- позиции заказов
 -- в каждом заказе три товара из нужного ресторана
