@@ -1,8 +1,8 @@
-\# Концептуальная модель базы данных
+# Концептуальная модель базы данных
 
 
 
-\## Описание проекта
+## Описание проекта
 
 
 
@@ -18,11 +18,11 @@
 
 
 
-\## Основные сущности
+## Основные сущности
 
 
 
-\### users
+### users
 
 
 
@@ -30,7 +30,7 @@
 
 
 
-\### restaurants
+### restaurants
 
 
 
@@ -38,7 +38,7 @@
 
 
 
-\### couriers
+### couriers
 
 
 
@@ -46,7 +46,7 @@
 
 
 
-\### categories
+### categories
 
 
 
@@ -54,7 +54,7 @@
 
 
 
-\### products
+### products
 
 
 
@@ -62,7 +62,7 @@
 
 
 
-\### orders
+### orders
 
 
 
@@ -70,7 +70,7 @@
 
 
 
-\### order\_items
+### order\_items
 
 
 
@@ -78,7 +78,7 @@
 
 
 
-\### payments
+### payments
 
 
 
@@ -86,7 +86,7 @@
 
 
 
-\### promocodes
+### promocodes
 
 
 
@@ -94,7 +94,7 @@
 
 
 
-\### order\_status\_history
+### order\_status\_history
 
 
 
@@ -102,7 +102,7 @@
 
 
 
-\### app\_events
+### app\_events
 
 
 
