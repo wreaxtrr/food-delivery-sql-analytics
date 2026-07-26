@@ -19,37 +19,19 @@ restart identity cascade;
 
 -- пользователи
 
-insert into users (
-    full_name,
-    email,
-    phone,
-    registration_date,
-    city
-)
+insert into users (full_name, email, phone, registration_date, city)
 select
     'User ' || n,
     'user' || n || '@mail.com',
     '+7999' || lpad(n::text, 7, '0'),
     date '2023-01-01' + floor(random() * 365)::int,
-    (array[
-        'Moscow',
-        'Saint Petersburg',
-        'Kazan',
-        'Novosibirsk',
-        'Sochi'
-    ])[floor(random() * 5)::int + 1]
+    (array['Moscow', 'Saint Petersburg', 'Kazan', 'Novosibirsk', 'Sochi'])[floor(random() * 5)::int + 1]
 from generate_series(1, 500) as gs(n);
 
 
 -- рестораны
 
-insert into restaurants (
-    restaurant_name,
-    city,
-    cuisine_type,
-    opened_at,
-    is_active
-)
+insert into restaurants (restaurant_name, city, cuisine_type, opened_at, is_active)
 values
     ('Burger House', 'Moscow', 'Burgers', '2021-04-10', true),
     ('Pizza Time', 'Moscow', 'Pizza', '2020-09-15', true),
@@ -65,33 +47,19 @@ values
 
 -- курьеры
 
-insert into couriers (
-    full_name,
-    phone,
-    hire_date,
-    transport_type,
-    is_active
-)
+insert into couriers (full_name, phone, hire_date, transport_type, is_active)
 select
     'Courier ' || n,
     '+7888' || lpad(n::text, 7, '0'),
     date '2022-01-01' + floor(random() * 700)::int,
-    (array[
-        'bike',
-        'scooter',
-        'car',
-        'walking'
-    ])[floor(random() * 4)::int + 1],
+    (array['bike', 'scooter', 'car', 'walking'])[floor(random() * 4)::int + 1],
     true
 from generate_series(1, 40) as gs(n);
 
 
 -- категории
 
-insert into categories (
-    category_name,
-    parent_category_id
-)
+insert into categories (category_name, parent_category_id)
 values
     ('Food', null),
     ('Drinks', null),
@@ -107,13 +75,7 @@ values
 
 -- товары
 
-insert into products (
-    restaurant_id,
-    category_id,
-    product_name,
-    price,
-    is_available
-)
+insert into products (restaurant_id, category_id, product_name, price, is_available)
 select
     ((n - 1) % 10) + 1,
     ((n - 1) % 8) + 3,
@@ -125,14 +87,7 @@ from generate_series(1, 120) as gs(n);
 
 -- промокоды
 
-insert into promocodes (
-    code,
-    discount_type,
-    discount_value,
-    starts_at,
-    ends_at,
-    is_active
-)
+insert into promocodes (code, discount_type, discount_value, starts_at, ends_at, is_active)
 values
     ('WELCOME10', 'percent', 10, '2024-01-01', '2024-12-31', true),
     ('SALE15', 'percent', 15, '2024-03-01', '2024-06-30', true),
@@ -166,8 +121,7 @@ with repeat_random as (
         random() as date_random,
         random() as promo_probability,
         random() as cancellation_probability
-    from generate_series(1, 2650) as gs(n)
-),
+    from generate_series(1, 2650) as gs(n)),
 
 generated_orders as (
     -- первый заказ каждого покупателя
@@ -190,18 +144,13 @@ generated_orders as (
 
         b.first_order_at
             + interval '1 day'
-            + r.date_random * (
-                timestamp '2024-12-31 23:59:59'
-                - b.first_order_at
-                - interval '1 day'
-            ) as order_created_at,
+            + r.date_random * (timestamp '2024-12-31 23:59:59' - b.first_order_at - interval '1 day') as order_created_at,
 
         r.promo_probability,
         r.cancellation_probability
     from repeat_random r
     join buyer_first_orders b
-        on b.user_id = r.user_id
-),
+        on b.user_id = r.user_id),
 
 restaurant_candidates as (
     select
@@ -213,17 +162,13 @@ restaurant_candidates as (
         g.promo_probability,
         g.cancellation_probability,
 
-        row_number() over (
-            partition by g.n
-            order by random()
-        ) as restaurant_number
+        row_number() over (partition by g.n order by random()) as restaurant_number
 
     from generated_orders g
     join users u
         on u.user_id = g.user_id
     join restaurants r
-        on r.city = u.city
-),
+        on r.city = u.city),
 
 prepared_orders as (
     select
@@ -236,8 +181,7 @@ prepared_orders as (
         promo_probability,
         cancellation_probability
     from restaurant_candidates
-    where restaurant_number = 1
-),
+    where restaurant_number = 1),
 
 orders_with_promo as (
     select
@@ -254,21 +198,9 @@ orders_with_promo as (
               between p.starts_at and p.ends_at
         order by random()
         limit 1
-    ) p on true
-)
+    ) p on true)
 
-insert into orders (
-    user_id,
-    restaurant_id,
-    courier_id,
-    promocode_id,
-    order_created_at,
-    order_status,
-    delivery_address,
-    delivery_fee,
-    discount_amount,
-    total_amount
-)
+insert into orders (user_id, restaurant_id, courier_id, promocode_id, order_created_at, order_status, delivery_address, delivery_fee, discount_amount, total_amount)
 select
     user_id,
     restaurant_id,
@@ -290,12 +222,7 @@ from orders_with_promo;
 -- позиции заказов
 -- в каждом заказе три товара из нужного ресторана
 
-insert into order_items (
-    order_id,
-    product_id,
-    quantity,
-    unit_price
-)
+insert into order_items (order_id, product_id, quantity, unit_price)
 select
     o.order_id,
     p.product_id,
@@ -320,8 +247,7 @@ with order_sums as (
         order_id,
         sum(quantity * unit_price) as items_sum
     from order_items
-    group by order_id
-),
+    group by order_id),
 
 order_values as (
     select
@@ -332,10 +258,7 @@ order_values as (
             when p.promocode_id is null then 0
 
             when p.discount_type = 'percent' then
-                least(
-                    s.items_sum,
-                    s.items_sum * p.discount_value / 100
-                )
+                least(s.items_sum, s.items_sum * p.discount_value / 100)
 
             when p.discount_type = 'fixed' then
                 least(s.items_sum, p.discount_value)
@@ -347,22 +270,13 @@ order_values as (
     join order_sums s
         on s.order_id = o.order_id
     left join promocodes p
-        on p.promocode_id = o.promocode_id
-)
+        on p.promocode_id = o.promocode_id)
 
 update orders o
 set
     discount_amount = round(v.discount_amount, 2),
 
-    total_amount = round(
-        greatest(
-            0,
-            v.items_sum
-            + o.delivery_fee
-            - v.discount_amount
-        ),
-        2
-    )
+    total_amount = round(greatest(0, v.items_sum + o.delivery_fee - v.discount_amount), 2)
 
 from order_values v
 where v.order_id = o.order_id;
@@ -370,22 +284,11 @@ where v.order_id = o.order_id;
 
 -- платежи
 
-insert into payments (
-    order_id,
-    payment_method,
-    payment_status,
-    paid_at,
-    amount
-)
+insert into payments (order_id, payment_method, payment_status, paid_at, amount)
 select
     order_id,
 
-    (array[
-        'card',
-        'cash',
-        'apple_pay',
-        'google_pay'
-    ])[floor(random() * 4)::int + 1],
+    (array['card', 'cash', 'apple_pay', 'google_pay'])[floor(random() * 4)::int + 1],
 
     case
         when order_status = 'cancelled' then 'refunded'
@@ -421,11 +324,7 @@ where o.order_status = 'delivered';
 
 -- история статусов
 
-insert into order_status_history (
-    order_id,
-    status,
-    status_changed_at
-)
+insert into order_status_history (order_id, status, status_changed_at)
 select
     order_id,
     'created',
@@ -433,11 +332,7 @@ select
 from orders;
 
 
-insert into order_status_history (
-    order_id,
-    status,
-    status_changed_at
-)
+insert into order_status_history (order_id, status, status_changed_at)
 select
     order_id,
     'paid',
@@ -445,11 +340,7 @@ select
 from orders;
 
 
-insert into order_status_history (
-    order_id,
-    status,
-    status_changed_at
-)
+insert into order_status_history (order_id, status, status_changed_at)
 select
     order_id,
     'cooking',
@@ -458,29 +349,18 @@ from orders
 where order_status = 'delivered';
 
 
-insert into order_status_history (
-    order_id,
-    status,
-    status_changed_at
-)
+insert into order_status_history (order_id, status, status_changed_at)
 select
     o.order_id,
     'delivering',
     o.order_created_at
-        + (
-            greatest(18, d.delivery_minutes - 15)::text
-            || ' minutes'
-        )::interval
+        + (greatest(18, d.delivery_minutes - 15)::text || ' minutes')::interval
 from orders o
 join delivery_plan d
     on d.order_id = o.order_id;
 
 
-insert into order_status_history (
-    order_id,
-    status,
-    status_changed_at
-)
+insert into order_status_history (order_id, status, status_changed_at)
 select
     o.order_id,
     'delivered',
@@ -491,11 +371,7 @@ join delivery_plan d
     on d.order_id = o.order_id;
 
 
-insert into order_status_history (
-    order_id,
-    status,
-    status_changed_at
-)
+insert into order_status_history (order_id, status, status_changed_at)
 select
     order_id,
     'cancelled',
@@ -506,11 +382,7 @@ where order_status = 'cancelled';
 
 -- события пользователей, которые оформили заказ
 
-insert into app_events (
-    user_id,
-    event_time,
-    event_type
-)
+insert into app_events (user_id, event_time, event_type)
 select
     user_id,
     order_created_at - interval '20 minutes',
@@ -518,12 +390,7 @@ select
 from orders;
 
 
-insert into app_events (
-    user_id,
-    event_time,
-    event_type,
-    restaurant_id
-)
+insert into app_events (user_id, event_time, event_type, restaurant_id)
 select
     user_id,
     order_created_at - interval '15 minutes',
@@ -532,13 +399,7 @@ select
 from orders;
 
 
-insert into app_events (
-    user_id,
-    event_time,
-    event_type,
-    restaurant_id,
-    product_id
-)
+insert into app_events (user_id, event_time, event_type, restaurant_id, product_id)
 select
     o.user_id,
     o.order_created_at - interval '10 minutes',
@@ -555,13 +416,7 @@ join lateral (
 ) item on true;
 
 
-insert into app_events (
-    user_id,
-    event_time,
-    event_type,
-    restaurant_id,
-    product_id
-)
+insert into app_events (user_id, event_time, event_type, restaurant_id, product_id)
 select
     o.user_id,
     o.order_created_at - interval '5 minutes',
@@ -578,12 +433,7 @@ join lateral (
 ) item on true;
 
 
-insert into app_events (
-    user_id,
-    event_time,
-    event_type,
-    restaurant_id
-)
+insert into app_events (user_id, event_time, event_type, restaurant_id)
 select
     user_id,
     order_created_at - interval '2 minutes',
@@ -592,13 +442,7 @@ select
 from orders;
 
 
-insert into app_events (
-    user_id,
-    event_time,
-    event_type,
-    restaurant_id,
-    order_id
-)
+insert into app_events (user_id, event_time, event_type, restaurant_id, order_id)
 select
     user_id,
     order_created_at,
@@ -623,8 +467,7 @@ with sessions as (
         timestamp '2024-01-02'
             + random() * interval '364 days' as session_started_at,
         random() as funnel_progress
-    from generate_series(1, 4000) as gs(n)
-),
+    from generate_series(1, 4000) as gs(n)),
 
 sessions_with_restaurants as (
     select
@@ -639,8 +482,7 @@ sessions_with_restaurants as (
         where r.city = u.city
         order by random()
         limit 1
-    ) r
-)
+    ) r)
 
 select
     s.*,
@@ -657,11 +499,7 @@ cross join lateral (
 
 -- все дополнительные сессии открыли приложение
 
-insert into app_events (
-    user_id,
-    event_time,
-    event_type
-)
+insert into app_events (user_id, event_time, event_type)
 select
     user_id,
     session_started_at,
@@ -671,12 +509,7 @@ from funnel_sessions;
 
 -- 75% дошли до просмотра ресторана
 
-insert into app_events (
-    user_id,
-    event_time,
-    event_type,
-    restaurant_id
-)
+insert into app_events (user_id, event_time, event_type, restaurant_id)
 select
     user_id,
     session_started_at + interval '2 minutes',
@@ -688,13 +521,7 @@ where funnel_progress < 0.75;
 
 -- 55% дошли до просмотра товара
 
-insert into app_events (
-    user_id,
-    event_time,
-    event_type,
-    restaurant_id,
-    product_id
-)
+insert into app_events (user_id, event_time, event_type, restaurant_id, product_id)
 select
     user_id,
     session_started_at + interval '4 minutes',
@@ -707,13 +534,7 @@ where funnel_progress < 0.55;
 
 -- 35% добавили товар в корзину
 
-insert into app_events (
-    user_id,
-    event_time,
-    event_type,
-    restaurant_id,
-    product_id
-)
+insert into app_events (user_id, event_time, event_type, restaurant_id, product_id)
 select
     user_id,
     session_started_at + interval '7 minutes',
@@ -726,12 +547,7 @@ where funnel_progress < 0.35;
 
 -- 18% начали оформление, но не создали заказ
 
-insert into app_events (
-    user_id,
-    event_time,
-    event_type,
-    restaurant_id
-)
+insert into app_events (user_id, event_time, event_type, restaurant_id)
 select
     user_id,
     session_started_at + interval '10 minutes',
@@ -804,19 +620,11 @@ from app_events;
 -- проверка логической согласованности данных
 
 select
-    count(*) filter (
-        where o.order_created_at::date < u.registration_date
-    ) as orders_before_registration,
+    count(*) filter (where o.order_created_at::date < u.registration_date) as orders_before_registration,
 
-    count(*) filter (
-        where u.city <> r.city
-    ) as city_mismatches,
+    count(*) filter (where u.city <> r.city) as city_mismatches,
 
-    count(*) filter (
-        where o.promocode_id is not null
-          and o.order_created_at::date
-              not between p.starts_at and p.ends_at
-    ) as invalid_promocodes
+    count(*) filter (where o.promocode_id is not null and o.order_created_at::date not between p.starts_at and p.ends_at) as invalid_promocodes
 
 from orders o
 join users u
@@ -832,13 +640,7 @@ left join promocodes p
 with delivery_times as (
     select
         o.order_id,
-        extract(
-            epoch from (
-                max(h.status_changed_at) filter (
-                    where h.status = 'delivered'
-                ) - o.order_created_at
-            )
-        ) / 60 as delivery_minutes
+        extract(epoch from (max(h.status_changed_at) filter (where h.status = 'delivered') - o.order_created_at)) / 60 as delivery_minutes
 
     from orders o
     join order_status_history h
@@ -846,8 +648,7 @@ with delivery_times as (
     where o.order_status = 'delivered'
     group by
         o.order_id,
-        o.order_created_at
-)
+        o.order_created_at)
 
 select
     min(delivery_minutes) as min_delivery_minutes,

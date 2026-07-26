@@ -24,8 +24,7 @@ with monthly_metrics as (
         sum(total_amount) as gmv
     from v_order_summary
     where order_status = 'delivered'
-    group by 1
-),
+    group by 1),
 
 metrics_with_lag as (
     select
@@ -33,18 +32,14 @@ metrics_with_lag as (
         orders_count,
         gmv,
         lag(gmv) over (order by month) as previous_gmv
-    from monthly_metrics
-)
+    from monthly_metrics)
 
 select
     month,
     orders_count,
     round(gmv, 2) as gmv,
     round(previous_gmv, 2) as previous_gmv,
-    round(
-        (gmv - previous_gmv) / nullif(previous_gmv, 0) * 100,
-        2
-    ) as gmv_growth_pct
+    round((gmv - previous_gmv) / nullif(previous_gmv, 0) * 100, 2) as gmv_growth_pct
 from metrics_with_lag
 order by month;
 
@@ -60,18 +55,13 @@ with restaurant_metrics as (
         sum(total_amount) as gmv
     from v_order_summary
     where order_status = 'delivered'
-    group by 1, 2, 3
-),
+    group by 1, 2, 3),
 
 ranked_restaurants as (
     select
         *,
-        dense_rank() over (
-            partition by month
-            order by gmv desc
-        ) as restaurant_rank
-    from restaurant_metrics
-)
+        dense_rank() over (partition by month order by gmv desc) as restaurant_rank
+    from restaurant_metrics)
 
 select
     month,
@@ -89,15 +79,8 @@ order by month, restaurant_rank;
 select
     restaurant_name,
     count(*) as all_orders,
-    count(*) filter (
-        where order_status = 'cancelled'
-    ) as cancelled_orders,
-    round(
-        100.0 * count(*) filter (
-            where order_status = 'cancelled'
-        ) / nullif(count(*), 0),
-        2
-    ) as cancellation_rate
+    count(*) filter (where order_status = 'cancelled') as cancelled_orders,
+    round(100.0 * count(*) filter (where order_status = 'cancelled') / nullif(count(*), 0), 2) as cancellation_rate
 from v_order_summary
 group by restaurant_name
 order by cancellation_rate desc;
@@ -133,30 +116,13 @@ select
 
     count(*) as all_orders,
 
-    count(*) filter (
-        where order_status = 'delivered'
-    ) as delivered_orders,
+    count(*) filter (where order_status = 'delivered') as delivered_orders,
 
-    round(
-        avg(total_amount) filter (
-            where order_status = 'delivered'
-        ),
-        2
-    ) as avg_delivered_order_value,
+    round(avg(total_amount) filter (where order_status = 'delivered'), 2) as avg_delivered_order_value,
 
-    round(
-        sum(total_amount) filter (
-            where order_status = 'delivered'
-        ),
-        2
-    ) as net_revenue,
+    round(sum(total_amount) filter (where order_status = 'delivered'), 2) as net_revenue,
 
-    round(
-        100.0 * count(*) filter (
-            where order_status = 'cancelled'
-        ) / nullif(count(*), 0),
-        2
-    ) as cancellation_rate
+    round(100.0 * count(*) filter (where order_status = 'cancelled') / nullif(count(*), 0), 2) as cancellation_rate
 
 from v_order_summary
 group by 1
@@ -170,20 +136,12 @@ with user_orders as (
         count(*) as orders_count
     from v_order_summary
     where order_status = 'delivered'
-    group by user_id
-)
+    group by user_id)
 
 select
     count(*) as buyers_count,
-    count(*) filter (
-        where orders_count >= 2
-    ) as repeat_buyers_count,
-    round(
-        100.0 * count(*) filter (
-            where orders_count >= 2
-        ) / nullif(count(*), 0),
-        2
-    ) as repeat_buyer_rate
+    count(*) filter (where orders_count >= 2) as repeat_buyers_count,
+    round(100.0 * count(*) filter (where orders_count >= 2) / nullif(count(*), 0), 2) as repeat_buyer_rate
 from user_orders;
 
 
@@ -194,38 +152,31 @@ with user_months as (
         user_id,
         date_trunc('month', order_created_at)::date as order_month
     from v_order_summary
-    where order_status = 'delivered'
-),
+    where order_status = 'delivered'),
 
 cohorts as (
     select
         user_id,
         min(order_month) as cohort_month
     from user_months
-    group by user_id
-),
+    group by user_id),
 
 activity as (
     select
         um.user_id,
         c.cohort_month,
         um.order_month,
-        (
-            extract(year from age(um.order_month, c.cohort_month)) * 12
-            + extract(month from age(um.order_month, c.cohort_month))
-        )::int as month_number
+        (extract(year from age(um.order_month, c.cohort_month)) * 12 + extract(month from age(um.order_month, c.cohort_month)))::int as month_number
     from user_months um
     join cohorts c
-        on c.user_id = um.user_id
-),
+        on c.user_id = um.user_id),
 
 cohort_sizes as (
     select
         cohort_month,
         count(*) as cohort_size
     from cohorts
-    group by cohort_month
-),
+    group by cohort_month),
 
 retention as (
     select
@@ -233,18 +184,14 @@ retention as (
         month_number,
         count(distinct user_id) as active_users
     from activity
-    group by cohort_month, month_number
-)
+    group by cohort_month, month_number)
 
 select
     r.cohort_month,
     r.month_number,
     cs.cohort_size,
     r.active_users,
-    round(
-        100.0 * r.active_users / nullif(cs.cohort_size, 0),
-        2
-    ) as retention_rate
+    round(100.0 * r.active_users / nullif(cs.cohort_size, 0), 2) as retention_rate
 from retention r
 join cohort_sizes cs
     on cs.cohort_month = r.cohort_month
@@ -261,23 +208,15 @@ with user_stats as (
         round(sum(total_amount), 2) as monetary
     from v_order_summary
     where order_status = 'delivered'
-    group by user_id
-),
+    group by user_id),
 
 rfm_scores as (
     select
         *,
-        ntile(4) over (
-            order by recency_days desc
-        ) as r_score,
-        ntile(4) over (
-            order by frequency
-        ) as f_score,
-        ntile(4) over (
-            order by monetary
-        ) as m_score
-    from user_stats
-)
+        ntile(4) over (order by recency_days desc) as r_score,
+        ntile(4) over (order by frequency) as f_score,
+        ntile(4) over (order by monetary) as m_score
+    from user_stats)
 
 select
     user_id,
@@ -314,8 +253,7 @@ with recursive category_tree as (
         ct.category_path || ' > ' || c.category_name
     from categories c
     join category_tree ct
-        on ct.category_id = c.parent_category_id
-)
+        on ct.category_id = c.parent_category_id)
 
 select
     category_id,
@@ -326,39 +264,23 @@ from category_tree
 order by category_path;
 
 
-
-
-
 -- 11. продуктовая воронка
 
 with funnel as (
     select
-        count(*) filter (
-            where event_type = 'app_open'
-        ) as app_open,
+        count(*) filter (where event_type = 'app_open') as app_open,
 
-        count(*) filter (
-            where event_type = 'restaurant_view'
-        ) as restaurant_view,
+        count(*) filter (where event_type = 'restaurant_view') as restaurant_view,
 
-        count(*) filter (
-            where event_type = 'product_view'
-        ) as product_view,
+        count(*) filter (where event_type = 'product_view') as product_view,
 
-        count(*) filter (
-            where event_type = 'add_to_cart'
-        ) as add_to_cart,
+        count(*) filter (where event_type = 'add_to_cart') as add_to_cart,
 
-        count(*) filter (
-            where event_type = 'checkout_start'
-        ) as checkout_start,
+        count(*) filter (where event_type = 'checkout_start') as checkout_start,
 
-        count(*) filter (
-            where event_type = 'order_created'
-        ) as order_created
+        count(*) filter (where event_type = 'order_created') as order_created
 
-    from app_events
-)
+    from app_events)
 
 select
     app_open,
@@ -368,35 +290,17 @@ select
     checkout_start,
     order_created,
 
-    round(
-        100.0 * restaurant_view / nullif(app_open, 0),
-        2
-    ) as app_to_restaurant_conversion,
+    round(100.0 * restaurant_view / nullif(app_open, 0), 2) as app_to_restaurant_conversion,
 
-    round(
-        100.0 * product_view / nullif(restaurant_view, 0),
-        2
-    ) as restaurant_to_product_conversion,
+    round(100.0 * product_view / nullif(restaurant_view, 0), 2) as restaurant_to_product_conversion,
 
-    round(
-        100.0 * add_to_cart / nullif(product_view, 0),
-        2
-    ) as product_to_cart_conversion,
+    round(100.0 * add_to_cart / nullif(product_view, 0), 2) as product_to_cart_conversion,
 
-    round(
-        100.0 * checkout_start / nullif(add_to_cart, 0),
-        2
-    ) as cart_to_checkout_conversion,
+    round(100.0 * checkout_start / nullif(add_to_cart, 0), 2) as cart_to_checkout_conversion,
 
-    round(
-        100.0 * order_created / nullif(checkout_start, 0),
-        2
-    ) as checkout_to_order_conversion,
+    round(100.0 * order_created / nullif(checkout_start, 0), 2) as checkout_to_order_conversion,
 
-    round(
-        100.0 * order_created / nullif(app_open, 0),
-        2
-    ) as total_conversion
+    round(100.0 * order_created / nullif(app_open, 0), 2) as total_conversion
 
 from funnel;
 
@@ -406,12 +310,7 @@ select
     c.transport_type,
     count(*) as delivered_orders,
     round(avg(v.delivery_minutes), 2) as avg_delivery_minutes,
-    round(
-        percentile_cont(0.5) within group (
-            order by v.delivery_minutes
-        )::numeric,
-        2
-    ) as median_delivery_minutes,
+    round(percentile_cont(0.5) within group (order by v.delivery_minutes)::numeric, 2) as median_delivery_minutes,
     min(v.delivery_minutes) as min_delivery_minutes,
     max(v.delivery_minutes) as max_delivery_minutes
 from v_order_summary v

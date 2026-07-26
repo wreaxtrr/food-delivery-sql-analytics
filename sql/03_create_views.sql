@@ -11,18 +11,14 @@ with item_stats as (
         sum(quantity) as items_count,
         sum(quantity * unit_price) as items_amount
     from order_items
-    group by order_id
-),
+    group by order_id),
 
 delivery_stats as (
     select
         order_id,
-        min(status_changed_at) filter (
-            where status = 'delivered'
-        ) as delivered_at
+        min(status_changed_at) filter (where status = 'delivered') as delivered_at
     from order_status_history
-    group by order_id
-)
+    group by order_id)
 
 select
     o.order_id,
@@ -49,14 +45,7 @@ select
 
     d.delivered_at,
 
-    round(
-        (
-            extract(epoch from (
-                d.delivered_at - o.order_created_at
-            )) / 60
-        )::numeric,
-        2
-    ) as delivery_minutes
+    round((extract(epoch from (d.delivered_at - o.order_created_at)) / 60)::numeric, 2) as delivery_minutes
 
 from orders o
 join users u
